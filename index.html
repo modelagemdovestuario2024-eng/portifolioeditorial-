@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumina | Portfólio Editorial de Fotografia</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Playfair Display & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              black: '#0a0a0a',
+              dark: '#121212',
+              card: '#1a1a1a',
+              border: '#2a2a2a',
+              accent: '#d4af37',
+              muted: '#8e8e93'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Import React, ReactDOM e Lucide Icons via CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, getDocs, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqiv1-wHhZBq77TbbaRA4OKNIBrFhKNWY",
+      authDomain: "portifolio-editorial.firebaseapp.com",
+      projectId: "portifolio-editorial",
+      storageBucket: "portifolio-editorial.firebasestorage.app",
+      messagingSenderId: "104100034613",
+      appId: "1:104100034613:web:8577e9d2abf64b5d6e997c"
+    };
+
+    // Initialize Firebase Services
+    const app = initializeApp(firebaseConfig);
+    window.firebaseAuth = getAuth(app);
+    window.firebaseDb = getFirestore(app);
+    window.firebaseStorage = getStorage(app);
+    window.firebaseAuthOps = { signInWithEmailAndPassword, signOut, onAuthStateChanged };
+    window.firebaseFirestoreOps = { doc, setDoc, getDoc, getDocs, collection, onSnapshot, deleteDoc };
+    window.firebaseStorageOps = { ref, uploadBytesResumable, getDownloadURL, deleteObject };
+  </script>
+
+  <style>
+    body {
+      background-color: #0a0a0a;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+    }
+    .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+    /* Masonry Custom Styles */
+    .masonry-grid {
+      column-count: 1;
+      column-gap: 1.5rem;
+    }
+    @media (min-width: 640px) {
+      .masonry-grid { column-count: 2; }
+    }
+    @media (min-width: 1024px) {
+      .masonry-grid { column-count: 3; }
+    }
+    .masonry-item {
+      break-inside: avoid;
+      margin-bottom: 1.5rem;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-brand-black text-gray-100 antialiased selection:bg-white selection:text-black">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- MOCK DATA FALLBACK ---
+    const INITIAL_SETTINGS = {
+      siteName: "AURELIA VANCE",
+      logo: "AURELIA VANCE",
+      bio: "Fotógrafa especialista em retratos editoriais, casamentos intimistas e ensaios de moda. Capturando a essência da luz e sentimentos em quadros atemporais.",
+      whatsapp: "5511999999999",
+      instagram: "@aureliavance",
+      email: "contato@aureliavance.com",
+      heroImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1600&auto=format&fit=crop"
+    };
+
+    const INITIAL_GALLERIES = [
+      {
+        id: "gal-1",
+        title: "Elegância Urbana & Ensaio de Moda",
+        slug: "elegancia-urbana",
+        category: "Moda",
+        description: "Ensaio autoral realizado em São Paulo explorando luz natural e arquitetura brutalista.",
+        coverImage: "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop",
+        published: true,
+        order: 1,
+        photos: [
+          { id: "p1", url: "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1200&auto=format&fit=crop", title: "Ensaio Urbano I", category: "Moda" },
+          { id: "p2", url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200&auto=format&fit=crop", title: "Texturas & Sombra", category: "Moda" },
+          { id: "p3", url: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=1200&auto=format&fit=crop", title: "Sutileza Editorial", category: "Moda" }
+        ]
+      }
+    ];
+
+    function PublicHeader({ siteName, currentRoute, navigate }) {
+      const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+      return (
+        <header className="sticky top-0 z-40 bg-brand-black/90 backdrop-blur-md border-b border-brand-border/40 transition-all">
+          <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+            <button 
+              onClick={() => navigate('home')} 
+              className="text-xl tracking-[0.25em] font-serif font-semibold text-white hover:opacity-80 transition"
+            >
+              {siteName || "PORTFÓLIO"}
+            </button>
+
+            <nav className="hidden md:flex items-center space-x-10 text-xs tracking-[0.2em] font-medium uppercase text-gray-400">
+              {['home', 'portfolio', 'about', 'contact'].map((route) => {
+                const labels = { home: 'Início', portfolio: 'Portfólio', about: 'Sobre', contact: 'Contato' };
+                const isActive = currentRoute === route;
+                return (
+                  <button
+                    key={route}
+                    onClick={() => navigate(route)}
+                    className={`transition-colors duration-200 hover:text-white ${isActive ? 'text-white font-semibold border-b border-white pb-1' : ''}`}
+                  >
+                    {labels[route]}
+                  </button>
+                );
+              })}
+              <button 
+                onClick={() => navigate('admin-login')} 
+                className="ml-4 px-3 py-1.5 border border-brand-border hover:border-gray-400 text-gray-300 hover:text-white transition rounded-sm text-[10px]"
+              >
+                Área Restrita
+              </button>
+            </nav>
+
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="md:hidden text-gray-300 hover:text-white p-2 focus:outline-none"
+            >
+              <i data-lucide={isMenuOpen ? "x" : "menu"} className="w-6 h-6"></i>
+            </button>
+          </div>
+
+          {isMenuOpen && (
+            <div className="md:hidden bg-brand-dark border-b border-brand-border px-6 py-6 flex flex-col space-y-4 text-sm tracking-widest uppercase text-gray-300">
+              <button onClick={() => { navigate('home'); setIsMenuOpen(false); }} className="text-left py-2 hover:text-white">Início</button>
+              <button onClick={() => { navigate('portfolio'); setIsMenuOpen(false); }} className="text-left py-2 hover:text-white">Portfólio</button>
+              <button onClick={() => { navigate('about'); setIsMenuOpen(false); }} className="text-left py-2 hover:text-white">Sobre</button>
+              <button onClick={() => { navigate('contact'); setIsMenuOpen(false); }} className="text-left py-2 hover:text-white">Contato</button>
+              <button onClick={() => { navigate('admin-login'); setIsMenuOpen(false); }} className="text-left py-2 text-xs text-brand-muted hover:text-white pt-2 border-t border-brand-border">Painel Admin</button>
+            </div>
+          )}
+        </header>
+      );
+    }
+
+    function PublicFooter({ settings, navigate }) {
+      return (
+        <footer className="bg-brand-dark border-t border-brand-border/50 text-gray-400 text-xs py-16 px-6">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left">
+            <div>
+              <h3 className="font-serif text-lg tracking-[0.2em] text-white mb-4">{settings.siteName}</h3>
+              <p className="text-gray-400 leading-relaxed font-light max-w-sm">{settings.bio}</p>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <h4 className="text-white tracking-widest uppercase mb-2 font-medium">Navegação</h4>
+              <button onClick={() => navigate('home')} className="hover:text-white transition w-fit mx-auto md:mx-0">Início</button>
+              <button onClick={() => navigate('portfolio')} className="hover:text-white transition w-fit mx-auto md:mx-0">Portfólio</button>
+              <button onClick={() => navigate('about')} className="hover:text-white transition w-fit mx-auto md:mx-0">Sobre</button>
+              <button onClick={() => navigate('contact')} className="hover:text-white transition w-fit mx-auto md:mx-0">Contato</button>
+            </div>
+            <div>
+              <h4 className="text-white tracking-widest uppercase mb-4 font-medium">Contato</h4>
+              <p className="mb-2">E-mail: <a href={`mailto:${settings.email}`} className="text-white hover:underline">{settings.email}</a></p>
+              <p className="mb-2">Instagram: <span className="text-white">{settings.instagram}</span></p>
+              <p className="mb-4">WhatsApp: <span className="text-white">{settings.whatsapp}</span></p>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-brand-border/40 text-center text-gray-500 text-[11px]">
+            &copy; {new Date().getFullYear()} {settings.siteName}. Todos os direitos reservados.
+          </div>
+        </footer>
+      );
+    }
+
+    function Lightbox({ photos, activeIndex, onClose, onNavigate }) {
+      if (activeIndex === null || !photos || !photos[activeIndex]) return null;
+
+      const current = photos[activeIndex];
+
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.key === 'Escape') onClose();
+          if (e.key === 'ArrowRight' && activeIndex < photos.length - 1) onNavigate(activeIndex + 1);
+          if (e.key === 'ArrowLeft' && activeIndex > 0) onNavigate(activeIndex - 1);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [activeIndex, photos]);
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center backdrop-blur-md transition-opacity">
+          <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition z-50"
+            title="Fechar (Esc)"
+          >
+            <i data-lucide="x" className="w-8 h-8"></i>
+          </button>
+
+          {activeIndex > 0 && (
+            <button 
+              onClick={() => onNavigate(activeIndex - 1)} 
+              className="absolute left-6 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-50"
+              title="Anterior"
+            >
+              <i data-lucide="chevron-left" className="w-8 h-8"></i>
+            </button>
+          )}
+
+          <div className="max-w-6xl max-h-[85vh] p-4 flex flex-col items-center">
+            <img 
+              src={current.url} 
+              alt={current.title || 'Fotografia'} 
+              className="max-h-[75vh] max-w-full object-contain shadow-2xl rounded-sm" 
+            />
+            {current.title && (
+              <div className="mt-4 text-center">
+                <p className="text-white font-serif tracking-wide text-lg">{current.title}</p>
+                {current.category && <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">{current.category}</p>}
+              </div>
+            )}
+          </div>
+
+          {activeIndex < photos.length - 1 && (
+            <button 
+              onClick={() => onNavigate(activeIndex + 1)} 
+              className="absolute right-6 text-white/70 hover:text-white p-3 rounded-full hover:bg-white/10 transition z-50"
+              title="Próxima"
+            >
+              <i data-lucide="chevron-right" className="w-8 h-8"></i>
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    function HomePage({ settings, galleries, navigate, onSelectGallery }) {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <section className="relative h-[85vh] flex items-center justify-center overflow-hidden border-b border-brand-border/30">
+            <img 
+              src={settings.heroImage} 
+              alt="Fotografia Hero" 
+              className="absolute inset-0 w-full h-full object-cover opacity-45 scale-105 transition-transform duration-1000" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-brand-black/40 to-transparent"></div>
+            
+            <div className="relative z-10 text-center max-w-3xl px-6">
+              <span className="text-xs font-semibold uppercase tracking-[0.4em] text-brand-muted mb-4 block">Portfólio Editorial</span>
+              <h1 className="text-4xl md:text-6xl font-serif text-white tracking-wider mb-6 font-normal leading-tight">
+                {settings.siteName}
+              </h1>
+              <p className="text-gray-300 text-sm md:text-base font-light leading-relaxed max-w-xl mx-auto mb-8">
+                {settings.bio}
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button 
+                  onClick={() => navigate('portfolio')} 
+                  className="w-full sm:w-auto px-8 py-3.5 bg-white text-black text-xs uppercase tracking-[0.2em] font-semibold hover:bg-gray-200 transition"
+                >
+                  Explorar Portfólio
+                </button>
+                <button 
+                  onClick={() => navigate('contact')} 
+                  className="w-full sm:w-auto px-8 py-3.5 border border-white/40 text-white text-xs uppercase tracking-[0.2em] font-medium hover:border-white transition"
+                >
+                  Solicitar Orçamento
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="py-24 px-6 max-w-7xl mx-auto w-full">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 border-b border-brand-border/40 pb-6">
+              <div>
+                <span className="text-[11px] uppercase tracking-[0.3em] text-brand-muted">Trabalhos Selecionados</span>
+                <h2 className="text-2xl md:text-3xl font-serif text-white tracking-wide mt-1">Galerias em Destaque</h2>
+              </div>
+              <button 
+                onClick={() => navigate('portfolio')} 
+                className="mt-4 md:mt-0 text-xs uppercase tracking-widest text-gray-400 hover:text-white transition flex items-center gap-2"
+              >
+                Ver Todas <i data-lucide="arrow-right" className="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {galleries.filter(g => g.published).map((gallery) => (
+                <div 
+                  key={gallery.id} 
+                  onClick={() => onSelectGallery(gallery)} 
+                  className="group cursor-pointer bg-brand-dark border border-brand-border/50 overflow-hidden rounded-sm transition duration-300 hover:border-gray-500"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden">
+                    <img 
+                      src={gallery.coverImage} 
+                      alt={gallery.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+                  </div>
+                  <div className="p-6">
+                    <span className="text-[10px] uppercase tracking-[0.25em] text-brand-muted">{gallery.category}</span>
+                    <h3 className="text-lg font-serif text-white mt-1 group-hover:text-gray-300 transition">{gallery.title}</h3>
+                    <p className="text-xs text-gray-400 font-light mt-2 line-clamp-2">{gallery.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="py-20 bg-brand-dark border-y border-brand-border/40 px-6 text-center">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-2xl md:text-3xl font-serif text-white mb-4">Vamos criar algo único juntos?</h2>
+              <p className="text-gray-400 text-sm font-light mb-8">Entre em contato para consultar datas disponíveis, pacotes de ensaios e produções sob medida.</p>
+              <a 
+                href={`https://wa.me/${settings.whatsapp}`} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="inline-flex items-center gap-3 px-8 py-3.5 bg-green-600 hover:bg-green-500 text-white text-xs uppercase tracking-widest font-medium transition rounded-sm"
+              >
+                <i data-lucide="message-circle" className="w-4 h-4"></i> Conversar pelo WhatsApp
+              </a>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    function PortfolioPage({ galleries, onSelectGallery }) {
+      const [selectedCategory, setSelectedCategory] = useState('Todas');
+      const [lightboxState, setLightboxState] = useState({ isOpen: false, photos: [], index: 0 });
+
+      const categories = useMemo(() => {
+        const set = new Set(galleries.map(g => g.category));
+        return ['Todas', ...Array.from(set)];
+      }, [galleries]);
+
+      const filteredGalleries = useMemo(() => {
+        if (selectedCategory === 'Todas') return galleries.filter(g => g.published);
+        return galleries.filter(g => g.published && g.category === selectedCategory);
+      }, [galleries, selectedCategory]);
+
+      const allPhotos = useMemo(() => {
+        return filteredGalleries.flatMap(g => g.photos || []);
+      }, [filteredGalleries]);
+
+      return (
+        <div className="min-h-screen py-16 px-6 max-w-7xl mx-auto">
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <span className="text-[11px] uppercase tracking-[0.3em] text-brand-muted">Coleção</span>
+            <h1 className="text-3xl md:text-5xl font-serif text-white mt-2 mb-4">Portfólio Fotográfico</h1>
+            <p className="text-gray-400 text-xs md:text-sm font-light">Explore por galerias temáticas ou navegue por todas as capturas.</p>
+          </div>
+
+          <div className="flex items-center justify-center flex-wrap gap-3 mb-16">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-5 py-2 text-xs tracking-widest uppercase transition rounded-sm border ${
+                  selectedCategory === cat 
+                    ? 'bg-white text-black border-white font-medium' 
+                    : 'text-gray-400 border-brand-border hover:border-gray-500 hover:text-white'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="mb-20">
+            <h2 className="text-xs uppercase tracking-[0.25em] text-brand-muted mb-6">Galerias</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {filteredGalleries.map((gallery) => (
+                <div 
+                  key={gallery.id} 
+                  onClick={() => onSelectGallery(gallery)}
+                  className="group cursor-pointer bg-brand-dark border border-brand-border/40 overflow-hidden rounded-sm hover:border-gray-500 transition"
+                >
+                  <div className="relative aspect-video overflow-hidden">
+                    <img src={gallery.coverImage} alt={gallery.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  </div>
+                  <div className="p-5">
+                    <span className="text-[10px] uppercase tracking-widest text-brand-muted">{gallery.category}</span>
+                    <h3 className="text-base font-serif text-white mt-1">{gallery.title}</h3>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xs uppercase tracking-[0.25em] text-brand-muted mb-6">Fotografias Individuais</h2>
+            <div className="masonry-grid">
+              {allPhotos.map((photo, index) => (
+                <div 
+                  key={photo.id || index} 
+                  onClick={() => setLightboxState({ isOpen: true, photos: allPhotos, index })}
+                  className="masonry-item group cursor-pointer relative overflow-hidden bg-brand-dark rounded-sm border border-brand-border/30"
+                >
+                  <img src={photo.url} alt={photo.title} className="w-full h-auto object-cover group-hover:opacity-90 transition duration-300" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                    <p className="text-white font-serif text-sm">{photo.title}</p>
+                    <p className="text-[10px] text-gray-300 uppercase tracking-widest">{photo.category}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {lightboxState.isOpen && (
+            <Lightbox 
+              photos={lightboxState.photos}
+              activeIndex={lightboxState.index}
+              onClose={() => setLightboxState({ ...lightboxState, isOpen: false })}
+              onNavigate={(newIndex) => setLightboxState({ ...lightboxState, index: newIndex })}
+            />
+          )}
+        </div>
+      );
+    }
+
+    function GalleryDetailPage({ gallery, navigate }) {
+      const [lightboxIndex, setLightboxIndex] = useState(null);
+
+      if (!gallery) {
+        return (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
+            <p className="text-gray-400 mb-4">Galeria não encontrada ou indisponível.</p>
+            <button onClick={() => navigate('portfolio')} className="px-6 py-2 bg-white text-black text-xs uppercase tracking-widest">Voltar ao Portfólio</button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen py-16 px-6 max-w-7xl mx-auto">
+          <button 
+            onClick={() => navigate('portfolio')} 
+            className="text-xs uppercase tracking-widest text-brand-muted hover:text-white transition flex items-center gap-2 mb-8"
+          >
+            <i data-lucide="arrow-left" className="w-4 h-4"></i> Voltar para o Portfólio
+          </button>
+
+          <div className="mb-12 border-b border-brand-border/40 pb-8">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-muted">{gallery.category}</span>
+            <h1 className="text-3xl md:text-5xl font-serif text-white mt-2 mb-4">{gallery.title}</h1>
+            <p className="text-gray-300 font-light text-sm max-w-2xl leading-relaxed">{gallery.description}</p>
+          </div>
+
+          <div className="masonry-grid">
+            {gallery.photos && gallery.photos.map((photo, idx) => (
+              <div 
+                key={photo.id || idx} 
+                onClick={() => setLightboxIndex(idx)}
+                className="masonry-item cursor-pointer group relative overflow-hidden bg-brand-dark rounded-sm border border-brand-border/30"
+              >
+                <img src={photo.url} alt={photo.title} className="w-full h-auto object-cover group-hover:scale-[1.02] transition duration-500" />
+              </div>
+            ))}
+          </div>
+
+          <Lightbox 
+            photos={gallery.photos} 
+            activeIndex={lightboxIndex} 
+            onClose={() => setLightboxIndex(null)} 
+            onNavigate={(idx) => setLightboxIndex(idx)} 
+          />
+        </div>
+      );
+    }
+
+    function AboutPage({ settings }) {
+      return (
+        <div className="min-h-screen py-20 px-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="relative aspect-[3/4] overflow-hidden rounded-sm border border-brand-border/40">
+              <img src={settings.heroImage} alt={settings.siteName} className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <span className="text-[11px] uppercase tracking-[0.3em] text-brand-muted">Sobre o Profissional</span>
+              <h1 className="text-3xl md:text-4xl font-serif text-white mt-2 mb-6">{settings.siteName}</h1>
+              <p className="text-gray-300 font-light text-sm leading-relaxed mb-6">{settings.bio}</p>
+              <p className="text-gray-400 font-light text-xs leading-relaxed mb-8">
+                Especializado em capturar momentos autênticos com sensibilidade estética refinada. Atendimento personalizado para ensaios, campanhas de marcas e coberturas exclusivas.
+              </p>
+              <div className="border-t border-brand-border/40 pt-6 space-y-2 text-xs text-gray-300">
+                <p><span className="text-gray-500">Localização:</span> Atendimento Nacional & Internacional</p>
+                <p><span className="text-gray-500">Especialidades:</span> Moda, Casamentos, Retratos e Editoriais</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ContactPage({ settings }) {
+      const [submitted, setSubmitted] = useState(false);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setSubmitted(true);
+      };
+
+      return (
+        <div className="min-h-screen py-20 px-6 max-w-4xl mx-auto">
+          <div className="text-center max-w-xl mx-auto mb-16">
+            <span className="text-[11px] uppercase tracking-[0.3em] text-brand-muted">Contato & Orçamentos</span>
+            <h1 className="text-3xl md:text-5xl font-serif text-white mt-2 mb-4">Vamos Conversar?</h1>
+            <p className="text-gray-400 text-xs md:text-sm font-light">Preencha o formulário abaixo ou entre em contato diretamente pelo WhatsApp.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="space-y-6 md:col-span-1 border-b md:border-b-0 md:border-r border-brand-border/40 pb-8 md:pb-0 md:pr-8">
+              <div>
+                <h3 className="text-xs uppercase tracking-widest text-white mb-2 font-medium">WhatsApp</h3>
+                <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="text-sm text-gray-400 hover:text-white transition">
+                  +{settings.whatsapp}
+                </a>
+              </div>
+              <div>
+                <h3 className="text-xs uppercase tracking-widest text-white mb-2 font-medium">E-mail</h3>
+                <a href={`mailto:${settings.email}`} className="text-sm text-gray-400 hover:text-white transition">
+                  {settings.email}
+                </a>
+              </div>
+              <div>
+                <h3 className="text-xs uppercase tracking-widest text-white mb-2 font-medium">Instagram</h3>
+                <p className="text-sm text-gray-400">{settings.instagram}</p>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              {submitted ? (
+                <div className="bg-brand-dark border border-brand-border p-8 text-center rounded-sm">
+                  <i data-lucide="check-circle" className="w-12 h-12 text-green-500 mx-auto mb-4"></i>
+                  <h3 className="text-lg font-serif text-white mb-2">Mensagem Enviada!</h3>
+                  <p className="text-xs text-gray-400">Agradecemos o contato. Retornaremos o mais breve possível.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Nome Completo</label>
+                    <input required type="text" className="w-full bg-brand-dark border border-brand-border rounded-sm px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition" placeholder="Seu nome" />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">E-mail</label>
+                    <input required type="email" className="w-full bg-brand-dark border border-brand-border rounded-sm px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition" placeholder="seuemail@exemplo.com" />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Mensagem / Detalhes do Projeto</label>
+                    <textarea required rows="5" className="w-full bg-brand-dark border border-brand-border rounded-sm px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition" placeholder="Descreva a data pretendida, tipo de ensaio ou evento..."></textarea>
+                  </div>
+                  <button type="submit" className="w-full py-3.5 bg-white text-black text-xs uppercase tracking-[0.2em] font-semibold hover:bg-gray-200 transition">
+                    Enviar Mensagem
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AdminLoginPage({ onLogin, navigate }) {
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+          if (window.firebaseAuth) {
+            const { signInWithEmailAndPassword } = window.firebaseAuthOps;
+            const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+            onLogin(userCredential.user);
+            navigate('admin-dashboard');
+          } else {
+            if (email === 'admin@fotografo.com' && password === 'admin123') {
+              onLogin({ email, role: 'admin' });
+              navigate('admin-dashboard');
+            } else {
+              setError('Credenciais inválidas.');
+            }
+          }
+        } catch (err) {
+          setError('Erro na autenticação Firebase: ' + (err.message || 'Verifique email/senha.'));
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <div className="max-w-md w-full bg-brand-dark border border-brand-border p-8 rounded-sm shadow-2xl">
+            <div className="text-center mb-8">
+              <span className="text-[10px] uppercase tracking-[0.3em] text-brand-muted">Acesso Restrito</span>
+              <h1 className="text-2xl font-serif text-white mt-1">Painel Administrativo</h1>
+            </div>
+
+            {error && (
+              <div className="mb-6 bg-red-900/30 border border-red-500/50 p-3 text-red-200 text-xs rounded-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleFormSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">E-mail do Administrador</label>
+                <input 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition"
+                  placeholder="admin@fotografo.com"
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Senha</label>
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-3 text-sm text-white focus:outline-none focus:border-white transition"
+                  placeholder="••••••••"
+                  required 
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-3.5 bg-white text-black text-xs uppercase tracking-[0.2em] font-semibold hover:bg-gray-200 transition disabled:opacity-50"
+              >
+                {loading ? 'Autenticando...' : 'Entrar no Painel'}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button onClick={() => navigate('home')} className="text-xs text-gray-500 hover:text-gray-300 transition">
+                &larr; Voltar para o site público
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AdminDashboard({ user, galleries, setGalleries, settings, setSettings, onLogout, navigate }) {
+      const [activeTab, setActiveTab] = useState('galleries');
+      const [editingGallery, setEditingGallery] = useState(null);
+      const [newGalTitle, setNewGalTitle] = useState('');
+      const [newGalCategory, setNewGalCategory] = useState('Moda');
+      const [newGalDesc, setNewGalDesc] = useState('');
+      const [newGalCover, setNewGalCover] = useState('');
+      const [uploadProgress, setUploadProgress] = useState(0);
+      const [isUploading, setIsUploading] = useState(false);
+
+      const handleCreateGallery = async (e) => {
+        e.preventDefault();
+        const galId = `gal-${Date.now()}`;
+        const newGallery = {
+          id: galId,
+          title: newGalTitle,
+          slug: newGalTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          category: newGalCategory,
+          description: newGalDesc,
+          coverImage: newGalCover || 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800&auto=format&fit=crop',
+          published: true,
+          order: galleries.length + 1,
+          photos: []
+        };
+
+        try {
+          if (window.firebaseDb) {
+            const { doc, setDoc } = window.firebaseFirestoreOps;
+            await setDoc(doc(window.firebaseDb, "galleries", galId), newGallery);
+          } else {
+            setGalleries([...galleries, newGallery]);
+          }
+          setNewGalTitle('');
+          setNewGalDesc('');
+          setNewGalCover('');
+        } catch (error) {
+          console.error("Erro ao salvar galeria:", error);
+        }
+      };
+
+      const togglePublish = async (id) => {
+        const gal = galleries.find(g => g.id === id);
+        if (!gal) return;
+        const updated = { ...gal, published: !gal.published };
+        try {
+          if (window.firebaseDb) {
+            const { doc, setDoc } = window.firebaseFirestoreOps;
+            await setDoc(doc(window.firebaseDb, "galleries", id), updated);
+          } else {
+            setGalleries(galleries.map(g => g.id === id ? updated : g));
+          }
+        } catch (e) {
+          console.error("Erro ao alterar visibilidade:", e);
+        }
+      };
+
+      const deleteGallery = async (id) => {
+        try {
+          if (window.firebaseDb) {
+            const { doc, deleteDoc } = window.firebaseFirestoreOps;
+            await deleteDoc(doc(window.firebaseDb, "galleries", id));
+          } else {
+            setGalleries(galleries.filter(g => g.id !== id));
+          }
+        } catch (e) {
+          console.error("Erro ao deletar galeria:", e);
+        }
+      };
+
+      const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file || !editingGallery) return;
+
+        if (window.firebaseStorage) {
+          setIsUploading(true);
+          setUploadProgress(0);
+
+          const { ref, uploadBytesResumable, getDownloadURL } = window.firebaseStorageOps;
+          const { doc, setDoc } = window.firebaseFirestoreOps;
+
+          const storageRef = ref(window.firebaseStorage, `portfolio/${Date.now()}_${file.name}`);
+          const uploadTask = uploadBytesResumable(storageRef, file);
+
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+              setUploadProgress(progress);
+            },
+            (error) => {
+              console.error("Upload error:", error);
+              setIsUploading(false);
+            },
+            async () => {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              const updatedPhotos = [
+                ...(editingGallery.photos || []),
+                { id: `p-${Date.now()}`, url: downloadURL, title: file.name, category: editingGallery.category }
+              ];
+              const updatedGallery = { ...editingGallery, photos: updatedPhotos };
+
+              await setDoc(doc(window.firebaseDb, "galleries", editingGallery.id), updatedGallery);
+              setEditingGallery(updatedGallery);
+              setIsUploading(false);
+            }
+          );
+        } else {
+          setIsUploading(true);
+          setTimeout(() => {
+            const uploadedUrl = URL.createObjectURL(file);
+            const updatedPhotos = [...(editingGallery.photos || []), { id: `p-${Date.now()}`, url: uploadedUrl, title: file.name, category: editingGallery.category }];
+            const updated = { ...editingGallery, photos: updatedPhotos };
+            setEditingGallery(updated);
+            setIsUploading(false);
+          }, 1000);
+        }
+      };
+
+      const handleSaveSettings = async (e) => {
+        e.preventDefault();
+        try {
+          if (window.firebaseDb) {
+            const { doc, setDoc } = window.firebaseFirestoreOps;
+            await setDoc(doc(window.firebaseDb, "settings", "general"), settings);
+          }
+        } catch (error) {
+          console.error('Erro ao salvar configurações:', error);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-brand-black flex flex-col md:flex-row">
+          <aside className="w-full md:w-64 bg-brand-dark border-r border-brand-border/40 p-6 flex flex-col justify-between">
+            <div>
+              <div className="mb-8">
+                <span className="text-[10px] uppercase tracking-widest text-brand-muted">Painel Admin</span>
+                <h2 className="text-xl font-serif text-white font-semibold mt-1">{settings.siteName}</h2>
+              </div>
+              <nav className="space-y-2 text-xs uppercase tracking-widest">
+                <button 
+                  onClick={() => { setActiveTab('galleries'); setEditingGallery(null); }}
+                  className={`w-full text-left px-4 py-3 rounded-sm transition ${activeTab === 'galleries' ? 'bg-white text-black font-semibold' : 'text-gray-400 hover:text-white'}`}
+                >
+                  Galerias & Imagens
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('settings'); setEditingGallery(null); }}
+                  className={`w-full text-left px-4 py-3 rounded-sm transition ${activeTab === 'settings' ? 'bg-white text-black font-semibold' : 'text-gray-400 hover:text-white'}`}
+                >
+                  Configurações do Site
+                </button>
+              </nav>
+            </div>
+
+            <div className="pt-6 border-t border-brand-border/40 space-y-3">
+              <button 
+                onClick={() => navigate('home')} 
+                className="w-full text-left text-xs text-gray-400 hover:text-white transition flex items-center gap-2"
+              >
+                <i data-lucide="external-link" className="w-4 h-4"></i> Ver Site Público
+              </button>
+              <button 
+                onClick={onLogout} 
+                className="w-full text-left text-xs text-red-400 hover:text-red-300 transition flex items-center gap-2"
+              >
+                <i data-lucide="log-out" className="w-4 h-4"></i> Sair do Painel
+              </button>
+            </div>
+          </aside>
+
+          <main className="flex-1 p-8 overflow-y-auto">
+            {activeTab === 'galleries' && !editingGallery && (
+              <div>
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h1 className="text-2xl font-serif text-white">Gerenciar Galerias</h1>
+                    <p className="text-xs text-gray-400 mt-1">Crie e edite suas coleções de fotos do portfólio via Firebase.</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleCreateGallery} className="bg-brand-dark border border-brand-border/50 p-6 rounded-sm mb-12 space-y-4">
+                  <h3 className="text-sm font-serif text-white uppercase tracking-wider mb-2">Nova Galeria</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="Título da Galeria" 
+                      value={newGalTitle}
+                      onChange={(e) => setNewGalTitle(e.target.value)}
+                      required 
+                      className="bg-brand-black border border-brand-border px-4 py-2.5 text-xs text-white rounded-sm focus:outline-none focus:border-white"
+                    />
+                    <select 
+                      value={newGalCategory} 
+                      onChange={(e) => setNewGalCategory(e.target.value)}
+                      className="bg-brand-black border border-brand-border px-4 py-2.5 text-xs text-white rounded-sm focus:outline-none focus:border-white"
+                    >
+                      <option value="Moda">Moda</option>
+                      <option value="Casamentos">Casamentos</option>
+                      <option value="Retratos">Retratos</option>
+                      <option value="Editoriais">Editoriais</option>
+                    </select>
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="URL da Imagem de Capa" 
+                    value={newGalCover}
+                    onChange={(e) => setNewGalCover(e.target.value)}
+                    className="w-full bg-brand-black border border-brand-border px-4 py-2.5 text-xs text-white rounded-sm focus:outline-none focus:border-white"
+                  />
+                  <textarea 
+                    placeholder="Descrição breve da galeria..." 
+                    value={newGalDesc}
+                    onChange={(e) => setNewGalDesc(e.target.value)}
+                    rows="2"
+                    className="w-full bg-brand-black border border-brand-border px-4 py-2.5 text-xs text-white rounded-sm focus:outline-none focus:border-white"
+                  ></textarea>
+                  <button type="submit" className="px-6 py-2.5 bg-white text-black text-xs uppercase tracking-widest font-semibold hover:bg-gray-200 transition">
+                    Cadastrar Galeria
+                  </button>
+                </form>
+
+                <div className="space-y-4">
+                  {galleries.map((gallery) => (
+                    <div key={gallery.id} className="bg-brand-dark border border-brand-border p-4 rounded-sm flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <img src={gallery.coverImage} alt={gallery.title} className="w-16 h-16 object-cover rounded-sm" />
+                        <div>
+                          <span className="text-[10px] uppercase tracking-widest text-brand-muted">{gallery.category}</span>
+                          <h4 className="text-sm font-serif text-white">{gallery.title}</h4>
+                          <p className="text-xs text-gray-500">{gallery.photos?.length || 0} fotografias</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => togglePublish(gallery.id)} 
+                          className={`px-3 py-1 text-[10px] uppercase tracking-widest rounded-sm border ${gallery.published ? 'border-green-600 text-green-400' : 'border-gray-600 text-gray-400'}`}
+                        >
+                          {gallery.published ? 'Publicada' : 'Rascunho'}
+                        </button>
+                        <button 
+                          onClick={() => setEditingGallery(gallery)} 
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-xs rounded-sm transition"
+                        >
+                          Gerenciar Imagens
+                        </button>
+                        <button 
+                          onClick={() => deleteGallery(gallery.id)} 
+                          className="p-1.5 text-red-400 hover:text-red-300 transition"
+                          title="Excluir"
+                        >
+                          <i data-lucide="trash-2" className="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {editingGallery && (
+              <div>
+                <button 
+                  onClick={() => setEditingGallery(null)} 
+                  className="text-xs uppercase tracking-widest text-brand-muted hover:text-white transition flex items-center gap-2 mb-6"
+                >
+                  <i data-lucide="arrow-left" className="w-4 h-4"></i> Voltar para Lista de Galerias
+                </button>
+
+                <div className="mb-8 border-b border-brand-border pb-4">
+                  <span className="text-[10px] uppercase tracking-widest text-brand-muted">{editingGallery.category}</span>
+                  <h1 className="text-2xl font-serif text-white">{editingGallery.title}</h1>
+                </div>
+
+                <div className="bg-brand-dark border-2 border-dashed border-brand-border p-8 text-center rounded-sm mb-8">
+                  <i data-lucide="upload-cloud" className="w-10 h-10 text-gray-500 mx-auto mb-3"></i>
+                  <p className="text-xs text-gray-300 font-medium mb-1">Selecione ou envie fotografias para o Firebase Storage</p>
+                  <p className="text-[10px] text-gray-500 mb-4">Formatos suportados: JPG, PNG, WEBP</p>
+                  
+                  <label className="inline-block px-5 py-2.5 bg-white text-black text-xs uppercase tracking-widest font-semibold cursor-pointer hover:bg-gray-200 transition">
+                    Escolher Arquivo
+                    <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                  </label>
+
+                  {isUploading && (
+                    <div className="mt-6 max-w-md mx-auto">
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Enviando imagem para o Firebase Storage...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-brand-black h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-white h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <h3 className="text-xs uppercase tracking-widest text-brand-muted mb-4">Fotos na Galeria ({editingGallery.photos?.length || 0})</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {editingGallery.photos && editingGallery.photos.map((photo, idx) => (
+                    <div key={photo.id || idx} className="relative group bg-brand-dark border border-brand-border rounded-sm overflow-hidden aspect-square">
+                      <img src={photo.url} alt={photo.title} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                        <button 
+                          onClick={async () => {
+                            const updatedPhotos = editingGallery.photos.filter((_, i) => i !== idx);
+                            const updatedGallery = { ...editingGallery, photos: updatedPhotos };
+                            if (window.firebaseDb) {
+                              const { doc, setDoc } = window.firebaseFirestoreOps;
+                              await setDoc(doc(window.firebaseDb, "galleries", editingGallery.id), updatedGallery);
+                            }
+                            setEditingGallery(updatedGallery);
+                          }}
+                          className="p-2 bg-red-600 text-white rounded-full hover:bg-red-500 transition"
+                          title="Remover Foto"
+                        >
+                          <i data-lucide="trash" className="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="max-w-2xl">
+                <h1 className="text-2xl font-serif text-white mb-2">Configurações do Site</h1>
+                <p className="text-xs text-gray-400 mb-8">Altere dados de contato, redes sociais, nome e foto de capa diretamente no Firebase.</p>
+
+                <form onSubmit={handleSaveSettings} className="space-y-4 bg-brand-dark border border-brand-border p-6 rounded-sm">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Seu Nome / Nome Profissional</label>
+                    <input 
+                      type="text" 
+                      value={settings.siteName} 
+                      onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                      className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-2.5 text-xs text-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">URL da Foto de Capa (Início / Hero)</label>
+                    <input 
+                      type="text" 
+                      value={settings.heroImage} 
+                      onChange={(e) => setSettings({ ...settings, heroImage: e.target.value })}
+                      placeholder="https://exemplo.com/sua-foto.jpg"
+                      className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-2.5 text-xs text-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Biografia Curta</label>
+                    <textarea 
+                      rows="3"
+                      value={settings.bio} 
+                      onChange={(e) => setSettings({ ...settings, bio: e.target.value })}
+                      className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-2.5 text-xs text-white" 
+                    ></textarea>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">WhatsApp</label>
+                      <input 
+                        type="text" 
+                        value={settings.whatsapp} 
+                        onChange={(e) => setSettings({ ...settings, whatsapp: e.target.value })}
+                        className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-2.5 text-xs text-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">E-mail</label>
+                      <input 
+                        type="email" 
+                        value={settings.email} 
+                        onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                        className="w-full bg-brand-black border border-brand-border rounded-sm px-4 py-2.5 text-xs text-white" 
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="px-6 py-2.5 bg-white text-black text-xs uppercase tracking-widest font-semibold hover:bg-gray-200 transition">
+                    Salvar Alterações
+                  </button>
+                </form>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    function App() {
+      const [currentRoute, setCurrentRoute] = useState('home');
+      const [galleries, setGalleries] = useState(INITIAL_GALLERIES);
+      const [settings, setSettings] = useState(INITIAL_SETTINGS);
+      const [selectedGallery, setSelectedGallery] = useState(null);
+      const [adminUser, setAdminUser] = useState(null);
+
+      useEffect(() => {
+        let unsubscribeAuth = null;
+        let unsubscribeGalleries = null;
+        let unsubscribeSettings = null;
+
+        const initFirebaseListeners = () => {
+          if (window.firebaseAuth) {
+            const { onAuthStateChanged } = window.firebaseAuthOps;
+            unsubscribeAuth = onAuthStateChanged(window.firebaseAuth, (user) => {
+              setAdminUser(user);
+            });
+          }
+
+          if (window.firebaseDb) {
+            const { collection, onSnapshot, doc } = window.firebaseFirestoreOps;
+
+            unsubscribeGalleries = onSnapshot(collection(window.firebaseDb, "galleries"), (snapshot) => {
+              const items = [];
+              snapshot.forEach((doc) => {
+                items.push({ id: doc.id, ...doc.data() });
+              });
+              if (items.length > 0) {
+                setGalleries(items);
+              }
+            });
+
+            unsubscribeSettings = onSnapshot(doc(window.firebaseDb, "settings", "general"), (docSnap) => {
+              if (docSnap.exists()) {
+                setSettings(docSnap.data());
+              }
+            });
+          }
+        };
+
+        const timer = setInterval(() => {
+          if (window.firebaseAuth && window.firebaseDb) {
+            initFirebaseListeners();
+            clearInterval(timer);
+          }
+        }, 300);
+
+        return () => {
+          clearInterval(timer);
+          if (unsubscribeAuth) unsubscribeAuth();
+          if (unsubscribeGalleries) unsubscribeGalleries();
+          if (unsubscribeSettings) unsubscribeSettings();
+        };
+      }, []);
+
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
+
+      const handleNavigate = (route) => {
+        setCurrentRoute(route);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleSelectGallery = (gallery) => {
+        setSelectedGallery(gallery);
+        setCurrentRoute('gallery-detail');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleLogout = async () => {
+        if (window.firebaseAuth) {
+          await window.firebaseAuthOps.signOut(window.firebaseAuth);
+        }
+        setAdminUser(null);
+        handleNavigate('home');
+      };
+
+      const isAdminRoute = currentRoute.startsWith('admin') && currentRoute !== 'admin-login';
+
+      return (
+        <div className="min-h-screen flex flex-col justify-between">
+          {!currentRoute.startsWith('admin') && (
+            <PublicHeader siteName={settings.siteName} currentRoute={currentRoute} navigate={handleNavigate} />
+          )}
+
+          <main className="flex-grow">
+            {currentRoute === 'home' && (
+              <HomePage 
+                settings={settings} 
+                galleries={galleries} 
+                navigate={handleNavigate} 
+                onSelectGallery={handleSelectGallery} 
+              />
+            )}
+
+            {currentRoute === 'portfolio' && (
+              <PortfolioPage 
+                galleries={galleries} 
+                onSelectGallery={handleSelectGallery} 
+              />
+            )}
+
+            {currentRoute === 'gallery-detail' && (
+              <GalleryDetailPage 
+                gallery={selectedGallery} 
+                navigate={handleNavigate} 
+              />
+            )}
+
+            {currentRoute === 'about' && (
+              <AboutPage settings={settings} />
+            )}
+
+            {currentRoute === 'contact' && (
+              <ContactPage settings={settings} />
+            )}
+
+            {currentRoute === 'admin-login' && (
+              <AdminLoginPage 
+                onLogin={(user) => setAdminUser(user)} 
+                navigate={handleNavigate} 
+              />
+            )}
+
+            {isAdminRoute && (
+              adminUser ? (
+                <AdminDashboard 
+                  user={adminUser}
+                  galleries={galleries}
+                  setGalleries={setGalleries}
+                  settings={settings}
+                  setSettings={setSettings}
+                  onLogout={handleLogout}
+                  navigate={handleNavigate}
+                />
+              ) : (
+                <AdminLoginPage 
+                  onLogin={(user) => setAdminUser(user)} 
+                  navigate={handleNavigate} 
+                />
+              )
+            )}
+          </main>
+
+          {!currentRoute.startsWith('admin') && (
+            <PublicFooter settings={settings} navigate={handleNavigate} />
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
